@@ -309,38 +309,38 @@ export const METHOD_COLS = {
   actions: 24,
 } as const;
 
-function HeaderCell({ w, label }: { w: number; label: string }) {
-  return (
-    <AutoLayout width={w} padding={{ vertical: 4 }} verticalAlignItems="center">
-      <Text fontSize={11} fill={THEME.textMuted}>{label}</Text>
-    </AutoLayout>
-  );
-}
+// function HeaderCell({ w, label }: { w: number; label: string }) {
+//   return (
+//     <AutoLayout width={w} padding={{ vertical: 4 }} verticalAlignItems="center">
+//       <Text fontSize={11} fill={THEME.textMuted}>{label}</Text>
+//     </AutoLayout>
+//   );
+// }
 
-function Cell({ w, children }: { w: number; children: any }) {
-  return (
-    <AutoLayout width={w} verticalAlignItems="center">
-      {children}
-    </AutoLayout>
-  );
-}
+// function Cell({ w, children }: { w: number; children: any }) {
+//   return (
+//     <AutoLayout width={w} verticalAlignItems="center">
+//       {children}
+//     </AutoLayout>
+//   );
+// }
 
-function PropertyHeaderRow() {
-  return (
-    <AutoLayout
-      width={'hug-contents'}
-      spacing={8}
-      verticalAlignItems={'center'}
-      padding={{ horizontal: 16, vertical: 6 }}
-      fill={THEME.headingBg}
-      cornerRadius={4}
-    >
-      <Text fontSize={10} fill={THEME.textMuted} width={28} horizontalAlignText={'center'}>mut</Text>
-      <Text fontSize={10} fill={THEME.textMuted} width={100}>name</Text>
-      <Text fontSize={10} fill={THEME.textMuted}>type</Text>
-    </AutoLayout>
-  )
-}
+// function PropertyHeaderRow() {
+//   return (
+//     <AutoLayout
+//       width={'hug-contents'}
+//       spacing={8}
+//       verticalAlignItems={'center'}
+//       padding={{ horizontal: 16, vertical: 6 }}
+//       fill={THEME.headingBg}
+//       cornerRadius={4}
+//     >
+//       <Text fontSize={10} fill={THEME.textMuted} width={28} horizontalAlignText={'center'}>mut</Text>
+//       <Text fontSize={10} fill={THEME.textMuted} width={100}>name</Text>
+//       <Text fontSize={10} fill={THEME.textMuted}>type</Text>
+//     </AutoLayout>
+//   )
+// }
 
 function PropertyRow({ prop, onChange, onRemove }: { prop: Property; onChange: (p: Property) => void; onRemove: () => void }) {
   const toggleMut = () => onChange({ ...prop, mutable: !prop.mutable })
@@ -586,7 +586,6 @@ function VariantRow({ variant, onChange, onRemove }: { variant: EnumVariant; onC
 function EnumSection({ variants, onChange }: { variants: EnumVariant[]; onChange: (v: EnumVariant[]) => void }) {
   return (
     <SectionPanel title="Variants">
-      <VariantHeaderRow />
       {variants.map(v => (
         <VariantRow key={v.id} variant={v} onChange={nv => onChange(variants.map(x => x.id === v.id ? nv : x))} onRemove={() => onChange(variants.filter(x => x.id !== v.id))} />
       ))}
@@ -844,7 +843,6 @@ function Widget() {
       {model.kind === 'module' && (
         <>
           <SectionPanel title="Types">
-            <TypeHeaderRow />
             {(model.moduleTypes ?? []).map(t => (
               <StringRow key={t.id} value={t.name} placeholder={'TypeName'} onChange={v => setModel({ ...model, moduleTypes: (model.moduleTypes ?? []).map(x => x.id === t.id ? { ...x, name: v } : x) })} onRemove={() => setModel({ ...model, moduleTypes: (model.moduleTypes ?? []).filter(x => x.id !== t.id) })} />
             ))}
@@ -852,7 +850,6 @@ function Widget() {
           </SectionPanel>
 
           <SectionPanel title="Variables">
-            <PropertyHeaderRow />
             {model.properties.map(p => (
               <PropertyRow key={p.id} prop={p} onChange={np => setModel({ ...model, properties: model.properties.map(x => x.id === p.id ? np : x) })} onRemove={() => setModel({ ...model, properties: model.properties.filter(x => x.id !== p.id) })} />
             ))}
@@ -863,7 +860,6 @@ function Widget() {
 
       {(model.kind === 'struct' || model.kind === 'union' || model.kind === 'type_alias') && (
         <SectionPanel title="Properties">
-          <PropertyHeaderRow />
           {model.properties.map(p => (
             <PropertyRow key={p.id} prop={p} onChange={np => setModel({ ...model, properties: model.properties.map(x => x.id === p.id ? np : x) })} onRemove={() => setModel({ ...model, properties: model.properties.filter(x => x.id !== p.id) })} />
           ))}
@@ -873,7 +869,6 @@ function Widget() {
 
       {model.kind !== 'type_alias' && (
         <SectionPanel title="Methods">
-          <MethodHeaderRow />
           {model.methods.map(m => (
             <MethodRow key={m.id} method={m} onChange={nm => setModel({ ...model, methods: model.methods.map(x => x.id === m.id ? nm : x) })} onRemove={() => setModel({ ...model, methods: model.methods.filter(x => x.id !== m.id) })} />
           ))}
@@ -885,39 +880,39 @@ function Widget() {
 }
 
 // ---- Extra header rows ----
-function MethodHeaderRow() {
-  return (
-    <AutoLayout
-      spacing={8}
-      width="fill-parent"
-      padding={{ horizontal: 12, vertical: 4 }}
-      fill={THEME.headingBg}
-      cornerRadius={4}
-    >
-      <HeaderCell w={METHOD_COLS.name} label="name" />
-      <HeaderCell w={METHOD_COLS.receiver} label="receiver" />
-      <HeaderCell w={METHOD_COLS.inputs} label="inputs" />
-      <HeaderCell w={METHOD_COLS.outputs} label="outputs" />
-      <HeaderCell w={METHOD_COLS.desc} label="desc" />
-      <HeaderCell w={METHOD_COLS.actions} label="" />
-    </AutoLayout>
-  );
-}
-function VariantHeaderRow() {
-  return (
-    <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={THEME.headingBg} cornerRadius={4}>
-      <Text fontSize={10} fill={THEME.textMuted} width={120}>name</Text>
-      <Text fontSize={10} fill={THEME.textMuted} width={60}>kind</Text>
-      <Text fontSize={10} fill={THEME.textMuted}>fields</Text>
-    </AutoLayout>
-  )
-}
-function TypeHeaderRow() {
-  return (
-    <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={withAlpha(THEME.textPrimary, 0.08)} cornerRadius={4}>
-      <Text fontSize={10} fill={THEME.textMuted} width={220}>name</Text>
-    </AutoLayout>
-  )
-}
+// function MethodHeaderRow() {
+//   return (
+//     <AutoLayout
+//       spacing={8}
+//       width="fill-parent"
+//       padding={{ horizontal: 12, vertical: 4 }}
+//       fill={THEME.headingBg}
+//       cornerRadius={4}
+//     >
+//       <HeaderCell w={METHOD_COLS.name} label="name" />
+//       <HeaderCell w={METHOD_COLS.receiver} label="receiver" />
+//       <HeaderCell w={METHOD_COLS.inputs} label="inputs" />
+//       <HeaderCell w={METHOD_COLS.outputs} label="outputs" />
+//       <HeaderCell w={METHOD_COLS.desc} label="desc" />
+//       <HeaderCell w={METHOD_COLS.actions} label="" />
+//     </AutoLayout>
+//   );
+// }
+// function VariantHeaderRow() {
+//   return (
+//     <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={THEME.headingBg} cornerRadius={4}>
+//       <Text fontSize={10} fill={THEME.textMuted} width={120}>name</Text>
+//       <Text fontSize={10} fill={THEME.textMuted} width={60}>kind</Text>
+//       <Text fontSize={10} fill={THEME.textMuted}>fields</Text>
+//     </AutoLayout>
+//   )
+// }
+// function TypeHeaderRow() {
+//   return (
+//     <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={withAlpha(THEME.textPrimary, 0.08)} cornerRadius={4}>
+//       <Text fontSize={10} fill={THEME.textMuted} width={220}>name</Text>
+//     </AutoLayout>
+//   )
+// }
 
 widget.register(Widget)
