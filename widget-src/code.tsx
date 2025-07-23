@@ -18,6 +18,7 @@ const THEME = {
   bodyFill: '#FAFAFA',
   sectionStroke: '#DADADA',
   textPrimary: '#333333',
+  headingBg: withAlpha('#333333', 0.08),
   textMuted: '#808080',
   pillFill: '#4A4A4A',
   pillText: '#FFFFFF',
@@ -213,6 +214,10 @@ function IconButton({ svg, onClick, tooltip, bg = THEME.pillFill, size = 18 }: {
   )
 }
 
+function VSep() {
+  return (<AutoLayout width={1} height={'fill-parent'} fill={withAlpha(THEME.textPrimary, 0.12)} />)
+}
+
 // ---------------------- ChipInput ----------------------
 function ChipInput({ value, placeholder, onChange, onRemove }: { value: string; placeholder: string; onChange: (v: string) => void; onRemove: () => void }) {
   const w = chipWidth(value || placeholder)
@@ -288,14 +293,46 @@ function TypeTokenEditor({ token, onChange, mutPrefix }: { token: TypeToken; onC
   )
 }
 
+export const PROP_COLS = {
+  mut: 32,
+  name: 120,
+  type: 160,
+  actions: 24,
+} as const;
+
+export const METHOD_COLS = {
+  name: 120,
+  receiver: 80,
+  inputs: 220,
+  outputs: 160,
+  desc: 180,
+  actions: 24,
+} as const;
+
+function HeaderCell({ w, label }: { w: number; label: string }) {
+  return (
+    <AutoLayout width={w} padding={{ vertical: 4 }} verticalAlignItems="center">
+      <Text fontSize={11} fill={THEME.textMuted}>{label}</Text>
+    </AutoLayout>
+  );
+}
+
+function Cell({ w, children }: { w: number; children: any }) {
+  return (
+    <AutoLayout width={w} verticalAlignItems="center">
+      {children}
+    </AutoLayout>
+  );
+}
+
 function PropertyHeaderRow() {
   return (
     <AutoLayout
-      width={'fill-parent'}
+      width={'hug-contents'}
       spacing={8}
       verticalAlignItems={'center'}
       padding={{ horizontal: 16, vertical: 6 }}
-      fill={withAlpha(THEME.textPrimary, 0.08)}
+      fill={THEME.headingBg}
       cornerRadius={4}
     >
       <Text fontSize={10} fill={THEME.textMuted} width={28} horizontalAlignText={'center'}>mut</Text>
@@ -308,10 +345,20 @@ function PropertyHeaderRow() {
 function PropertyRow({ prop, onChange, onRemove }: { prop: Property; onChange: (p: Property) => void; onRemove: () => void }) {
   const toggleMut = () => onChange({ ...prop, mutable: !prop.mutable })
   return (
-    <AutoLayout spacing={8} verticalAlignItems={'center'} width={'fill-parent'}>
+    <AutoLayout
+      spacing={8}
+      verticalAlignItems={'center'}
+      width={'hug-contents'}
+      padding={{ horizontal: 12, vertical: 4 }}
+      stroke={THEME.sectionStroke}
+      cornerRadius={4}
+    >
       <IconButton svg={prop.mutable ? UNLOCK_SVG : LOCK_SVG} onClick={toggleMut} tooltip={prop.mutable ? 'Make immutable' : 'Make mutable'} bg={prop.mutable ? '#FF6B6B' : '#FFFFFF22'} size={18} />
+      <VSep />
       <Input value={prop.name} placeholder={'property'} fontSize={12} width={100} onTextEditEnd={e => onChange({ ...prop, name: e.characters })} />
+      <VSep />
       <TypeTokenEditor token={prop.ty} onChange={t => onChange({ ...prop, ty: t })} mutPrefix={prop.mutable} />
+      <VSep />
       <IconButton svg={MINUS_SVG} onClick={onRemove} tooltip={'Remove property'} size={18} />
     </AutoLayout>
   )
@@ -319,53 +366,187 @@ function PropertyRow({ prop, onChange, onRemove }: { prop: Property; onChange: (
 
 function ParamRow({ param, onChange, onRemove }: { param: MethodParam; onChange: (p: MethodParam) => void; onRemove: () => void }) {
   return (
-    <AutoLayout spacing={6} verticalAlignItems={'center'}>
+    <AutoLayout
+      spacing={6}
+      verticalAlignItems={'center'}
+      padding={{ horizontal: 12, vertical: 4 }}
+      stroke={THEME.sectionStroke}
+      cornerRadius={4}
+      width={'fill-parent'}
+    >
       <Input value={param.name} placeholder={'arg'} fontSize={12} width={80} onTextEditEnd={e => onChange({ ...param, name: e.characters })} />
+      <VSep />
       <TypeTokenEditor token={param.ty} onChange={t => onChange({ ...param, ty: t })} />
+      <VSep />
       <IconButton svg={MINUS_SVG} onClick={onRemove} tooltip={'Remove param'} size={18} />
     </AutoLayout>
   )
 }
 
-function MethodRow({ method, onChange, onRemove }: { method: Method; onChange: (m: Method) => void; onRemove: () => void }) {
+function MethodRow({
+  method,
+  onChange,
+  onRemove,
+}: {
+  method: Method;
+  onChange: (m: Method) => void;
+  onRemove: () => void;
+}) {
   const updateOutputs = (idx: number, token: TypeToken) => {
-    const arr = [...method.outputs]; arr[idx] = token; onChange({ ...method, outputs: arr })
-  }
+    const outputs = [...method.outputs];
+    outputs[idx] = token;
+    onChange({ ...method, outputs });
+  };
+
+  const updateInputs = (idx: number, p: MethodParam) => {
+    const inputs = [...method.inputs];
+    inputs[idx] = p;
+    onChange({ ...method, inputs });
+  };
+
   return (
-    <AutoLayout direction={'vertical'} spacing={6} padding={{ vertical: 8 }} width={'fill-parent'}>
-      <AutoLayout spacing={8} verticalAlignItems={'center'} width={'fill-parent'}>
-        <Input value={method.name} placeholder={'fn name'} fontSize={12} width={120} onTextEditEnd={e => onChange({ ...method, name: e.characters })} />
-        <Text fontSize={12} fill={THEME.textMuted} onClick={() => onChange({ ...method, receiver: cycle(SELF_RECEIVERS, method.receiver) })}>{method.receiver}</Text>
-        <IconButton svg={MINUS_SVG} onClick={onRemove} tooltip={'Remove method'} size={18} />
+    <AutoLayout
+      spacing={8}
+      verticalAlignItems="start"
+      width="fill-parent"
+      padding={{ horizontal: 12, vertical: 4 }}
+      stroke={THEME.sectionStroke}
+      cornerRadius={4}
+    >
+      {/* name */}
+      <AutoLayout width={120}>
+        <Input
+          value={method.name}
+          placeholder="fn name"
+          fontSize={12}
+          fill={THEME.textPrimary}
+          onTextEditEnd={(e) => onChange({ ...method, name: e.characters })}
+        />
       </AutoLayout>
+      <VSep />
 
-      <SectionSub title={'Inputs'}>
+      {/* receiver */}
+      <AutoLayout width={80} verticalAlignItems="center">
+        <Text
+          fontSize={12}
+          fill={THEME.textMuted}
+          onClick={() =>
+            onChange({
+              ...method,
+              receiver: cycle(SELF_RECEIVERS, method.receiver),
+            })
+          }
+        >
+          {method.receiver}
+        </Text>
+      </AutoLayout>
+      <VSep />
+
+      {/* inputs */}
+      <AutoLayout direction="vertical" spacing={4} width="hug-contents">
         {method.inputs.map((p, i) => (
-          <ParamRow key={p.id} param={p} onChange={np => { const arr = [...method.inputs]; arr[i] = np; onChange({ ...method, inputs: arr }) }} onRemove={() => onChange({ ...method, inputs: method.inputs.filter(x => x.id !== p.id) })} />
+          <ParamRow
+            key={p.id}
+            param={p}
+            onChange={(np) => updateInputs(i, np)}
+            onRemove={() =>
+              onChange({
+                ...method,
+                inputs: method.inputs.filter((x) => x.id !== p.id),
+              })
+            }
+          />
         ))}
-        <Pill label={'Add param'} onClick={() => onChange({ ...method, inputs: [...method.inputs, { id: uid(), name: 'arg', ty: defaultTypeToken() }] })} />
-      </SectionSub>
+        <Pill
+          label="+ arg"
+          onClick={() =>
+            onChange({
+              ...method,
+              inputs: [
+                ...method.inputs,
+                { id: uid(), name: 'arg', ty: defaultTypeToken() },
+              ],
+            })
+          }
+        />
+      </AutoLayout>
+      <VSep />
 
-      <SectionSub title={'Outputs'}>
+      {/* outputs */}
+      <AutoLayout direction="vertical" spacing={4} width={160}>
         {method.outputs.map((t, i) => (
-          <AutoLayout key={t.id} spacing={2} verticalAlignItems={'center'} width={'hug-contents'} padding={{ horizontal: 4, vertical: 1 }} fill={'#FFFFFF33'} cornerRadius={10}>
-            <TypeTokenEditor token={t} onChange={tok => updateOutputs(i, tok)} />
-            <IconButton svg={MINUS_SVG} onClick={() => onChange({ ...method, outputs: method.outputs.filter(x => x.id !== t.id) })} tooltip={'Remove output'} size={18} />
+          <AutoLayout
+            key={t.id}
+            spacing={2}
+            verticalAlignItems="center"
+            padding={{ horizontal: 4, vertical: 1 }}
+            fill="#FFFFFF33"
+            cornerRadius={2}
+          >
+            <TypeTokenEditor token={t} onChange={(nt) => updateOutputs(i, nt)} />
+            <IconButton
+              svg={MINUS_SVG}
+              size={14}
+              tooltip="Remove return type"
+              onClick={() =>
+                onChange({
+                  ...method,
+                  outputs: method.outputs.filter((x) => x.id !== t.id),
+                })
+              }
+            />
           </AutoLayout>
         ))}
-        <Pill label={'Add output'} onClick={() => onChange({ ...method, outputs: [...method.outputs, defaultTypeToken()] })} />
-      </SectionSub>
+        <Pill
+          label="+ out"
+          onClick={() =>
+            onChange({
+              ...method,
+              outputs: [...method.outputs, defaultTypeToken()],
+            })
+          }
+        />
+      </AutoLayout>
+      <VSep />
 
-      <Input value={method.desc} placeholder={'description'} fontSize={12} width={240} onTextEditEnd={e => onChange({ ...method, desc: e.characters })} />
+      {/* description */}
+      <AutoLayout width={160}>
+        <Input
+          value={method.desc}
+          placeholder="description"
+          fontSize={12}
+          fill={THEME.textPrimary}
+          onTextEditEnd={(e) =>
+            onChange({ ...method, desc: e.characters })
+          }
+        />
+      </AutoLayout>
+      <VSep />
+
+      {/* delete method */}
+      <IconButton
+        svg={MINUS_SVG}
+        onClick={onRemove}
+        tooltip="Remove method"
+        size={18}
+      />
     </AutoLayout>
-  )
+  );
 }
 
 // ---------- Simple StringRow util ----------
 function StringRow({ value, placeholder, onChange, onRemove }: { value: string; placeholder: string; onChange: (v: string) => void; onRemove: () => void }) {
   return (
-    <AutoLayout spacing={6} verticalAlignItems={'center'} width={'fill-parent'}>
+    <AutoLayout
+      spacing={6}
+      verticalAlignItems={'center'}
+      width={'hug-contents'}
+      padding={{ horizontal: 12, vertical: 4 }}
+      stroke={THEME.sectionStroke}
+      cornerRadius={4}
+    >
       <Input value={value} placeholder={placeholder} fontSize={12} width={220} onTextEditEnd={e => onChange(e.characters)} />
+      <VSep />
       <IconButton svg={MINUS_SVG} onClick={onRemove} tooltip={'Remove'} size={18} />
     </AutoLayout>
   )
@@ -376,10 +557,19 @@ function VariantRow({ variant, onChange, onRemove }: { variant: EnumVariant; onC
   const setKind = () => onChange({ ...variant, kind: cycle(['unit','tuple','struct'], variant.kind) as EnumVariantKind })
   const updateField = (idx: number, p: Property) => { const arr = [...variant.fields]; arr[idx] = p; onChange({ ...variant, fields: arr }) }
   return (
-    <AutoLayout direction={'vertical'} spacing={4} width={'fill-parent'}>
-      <AutoLayout spacing={8} verticalAlignItems={'center'}>
+    <AutoLayout direction={'vertical'} spacing={4} width={'hug-contents'}>
+      <AutoLayout
+        spacing={8}
+        verticalAlignItems={'center'}
+        width={'hug-contents'}
+        padding={{ horizontal: 12, vertical: 4 }}
+        stroke={THEME.sectionStroke}
+        cornerRadius={4}
+      >
         <Input value={variant.name} placeholder={'Variant'} fontSize={12} width={120} onTextEditEnd={e => onChange({ ...variant, name: e.characters })} />
+        <VSep />
         <Text fontSize={12} fill={THEME.textMuted} onClick={setKind}>{variant.kind}</Text>
+        <VSep />
         <IconButton svg={MINUS_SVG} onClick={onRemove} tooltip={'Remove variant'} size={18} />
       </AutoLayout>
       {variant.kind !== 'unit' && (
@@ -396,6 +586,7 @@ function VariantRow({ variant, onChange, onRemove }: { variant: EnumVariant; onC
 function EnumSection({ variants, onChange }: { variants: EnumVariant[]; onChange: (v: EnumVariant[]) => void }) {
   return (
     <SectionPanel title="Variants">
+      <VariantHeaderRow />
       {variants.map(v => (
         <VariantRow key={v.id} variant={v} onChange={nv => onChange(variants.map(x => x.id === v.id ? nv : x))} onRemove={() => onChange(variants.filter(x => x.id !== v.id))} />
       ))}
@@ -409,7 +600,7 @@ function SectionSub({ title, children }: { title: string; children: any }) {
   return (
     <AutoLayout direction={'vertical'} spacing={4} width={'fill-parent'}>
       <Text fontSize={13} fill={THEME.textMuted}>{title}</Text>
-      <AutoLayout direction={'vertical'} spacing={4} width={'fill-parent'}>
+      <AutoLayout direction={'vertical'} spacing={4} width={'hug-contents'}>
         {children}
       </AutoLayout>
     </AutoLayout>
@@ -418,10 +609,10 @@ function SectionSub({ title, children }: { title: string; children: any }) {
 function SectionPanel({ title, children }: { title: string; children: any }) {
   return (
     <AutoLayout direction={'vertical'} width={'fill-parent'} stroke={THEME.sectionStroke} fill={THEME.sectionBg} cornerRadius={THEME.radius}>
-      <AutoLayout padding={{ horizontal: 16, vertical: 12 }} spacing={8} verticalAlignItems={'center'} width={'fill-parent'}>
+      <AutoLayout padding={{ horizontal: 16, vertical: 12 }} spacing={8} verticalAlignItems={'center'} width={'hug-contents'}>
         <Text fontSize={16} fill={THEME.textPrimary}>{title}</Text>
       </AutoLayout>
-      <AutoLayout direction={'vertical'} spacing={8} padding={{ horizontal: 16, bottom: 16 }} width={'fill-parent'}>
+      <AutoLayout direction={'vertical'} spacing={8} padding={{ horizontal: 16, bottom: 16 }} width={'hug-contents'}>
         {children}
       </AutoLayout>
     </AutoLayout>
@@ -450,9 +641,9 @@ function HeaderBar({
     <AutoLayout fill={THEME.headerFill} padding={{ horizontal: 16, vertical: 12 }} cornerRadius={{ topLeft: THEME.radius, topRight: THEME.radius, bottomLeft: 0, bottomRight: 0 }} direction={'vertical'} spacing={8} width={'fill-parent'}>
       <Text fontSize={14} fill={THEME.headerText}>{`<< ${kind === 'trait' ? 'interface' : kind} >>`}</Text>
 
-      <AutoLayout direction={'horizontal'} width={'fill-parent'} spacing={16} verticalAlignItems={'start'}>
+      <AutoLayout direction={'horizontal'} width={'hug-contents'} spacing={16} verticalAlignItems={'start'}>
         {/* left */}
-        <AutoLayout direction={'vertical'} spacing={8} width={'fill-parent'}>
+        <AutoLayout direction={'vertical'} spacing={8} width={'hug-contents'}>
           <AutoLayout spacing={8} verticalAlignItems={'center'}>
             <SVG src={FILE_ICON_SVG} width={20} height={20} />
             <Input value={name} placeholder={'Type name'} fontSize={24} fontWeight={'bold'} fill={THEME.headerText} width={220} onTextEditEnd={e => onName(e.characters)} />
@@ -461,17 +652,17 @@ function HeaderBar({
         </AutoLayout>
 
         {/* right */}
-        <AutoLayout direction={'vertical'} spacing={8} width={'fill-parent'}>
+        <AutoLayout direction={'vertical'} spacing={8} width={'hug-contents'}>
           {kind !== 'module' ? (
             <>
-              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'fill-parent'}>
+              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'hug-contents'}>
                 <Text fontSize={12} fill={THEME.headerTextMuted}>Lifetimes:</Text>
                 {lifetimes.map(l => (
                   <ChipInput key={l.id} value={l.name} placeholder={`'a`} onChange={v => onEditLifetime(l.id, v)} onRemove={() => onRemoveLifetime(l.id)} />
                 ))}
                 <Pill label={'+'} onClick={onAddLifetime} />
               </AutoLayout>
-              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'fill-parent'}>
+              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'hug-contents'}>
                 <Text fontSize={12} fill={THEME.headerTextMuted}>Traits:</Text>
                 {impls.map(t => (
                   <ChipInput key={t.id} value={t.name} placeholder={'Display'} onChange={v => onEditImpl(t.id, v)} onRemove={() => onRemoveImpl(t.id)} />
@@ -481,14 +672,14 @@ function HeaderBar({
             </>
           ) : (
             <>
-              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'fill-parent'}>
+              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'hug-contents'}>
                 <Text fontSize={12} fill={THEME.headerTextMuted}>Uses:</Text>
                 {moduleUses.map(u => (
                   <ChipInput key={u.id} value={u.path} placeholder={'crate::path'} onChange={v => onEditUse(u.id, v)} onRemove={() => onRemoveUse(u.id)} />
                 ))}
                 <Pill label={'+'} onClick={onAddUse} />
               </AutoLayout>
-              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'fill-parent'}>
+              <AutoLayout spacing={6} verticalAlignItems={'center'} wrap width={'hug-contents'}>
                 <Text fontSize={12} fill={THEME.headerTextMuted}>Submodules:</Text>
                 {submodules.map(s => (
                   <ChipInput key={s.id} value={s.name} placeholder={'submod'} onChange={v => onEditSubmodule(s.id, v)} onRemove={() => onRemoveSubmodule(s.id)} />
@@ -529,6 +720,8 @@ function Widget() {
   const [primaryColor, setPrimaryColor] = useSyncedState<string>('primaryColor', THEME.headerFill)
   const [pickerOpen, setPickerOpen] = useSyncedState<boolean>('pickerOpen', false)
 
+  const [quickAddTarget, setQuickAddTarget] = useSyncedState<'property'|'method'|'variant'|'type'|'use'|'submodule'>('qaTarget', 'property')
+
   applyPrimary(primaryColor)
 
   const addField = () => setModel({ ...model, properties: [...model.properties, defaultProperty()] })
@@ -539,52 +732,83 @@ function Widget() {
   const addSubmodule = () => setModel({ ...model, submodules: [...(model.submodules ?? []), defaultSubmodule()] })
 
   // -------- Property Menu --------
+  const qaOptions: { option: string; label: string }[] = (
+    model.kind === 'module' ? [
+      { option: 'type',      label: 'Type' },
+      { option: 'use',       label: 'Use' },
+      { option: 'submodule', label: 'Submodule' },
+      { option: 'property',  label: 'Variable' },
+      { option: 'method',    label: 'Method' },
+    ] : model.kind === 'enum' ? [
+      { option: 'variant',   label: 'Variant' },
+      { option: 'method',    label: 'Method' },
+      { option: 'property',  label: 'Property' },
+    ] : model.kind === 'type_alias' ? [
+      { option: 'property',  label: 'Property' },
+    ] : [ // struct / union / trait
+      { option: 'property',  label: 'Property' },
+      { option: 'method',    label: 'Method' },
+    ]
+  )
+
   const menu: WidgetPropertyMenuItem[] = [
-    { itemType: 'action', propertyName: 'reset', tooltip: 'Reset model', icon: RESET_SVG },
+    { itemType: 'action',   propertyName: 'reset',     tooltip: 'Reset model', icon: RESET_SVG },
     {
-      itemType: 'dropdown', propertyName: 'kind', tooltip: 'Type kind', selectedOption: model.kind,
+      itemType: 'dropdown', propertyName: 'kind',      tooltip: 'Type kind',
+      selectedOption: model.kind,
       options: [
-        { option: 'struct', label: 'struct' },
-        { option: 'module', label: 'module' },
-        { option: 'enum', label: 'enum' },
-        { option: 'trait', label: 'trait' },
-        { option: 'union', label: 'union' },
+        { option: 'struct',     label: 'struct' },
+        { option: 'module',     label: 'module' },
+        { option: 'enum',       label: 'enum' },
+        { option: 'trait',      label: 'trait' },
+        { option: 'union',      label: 'union' },
         { option: 'type_alias', label: 'type alias' },
       ],
     },
-    { itemType: 'action', propertyName: 'pickColor', tooltip: 'Pick color' },
+    { itemType: 'action',   propertyName: 'pickColor', tooltip: 'Pick color' },
+    {
+      itemType: 'dropdown', propertyName: 'qaTarget',  tooltip: 'Select what to add',
+      selectedOption: quickAddTarget,
+      options: qaOptions,
+    },
+    { itemType: 'action',   propertyName: 'qaAdd',     tooltip: 'Add selected item', icon: PLUS_SVG },
   ]
-  if (model.kind === 'enum') menu.push({ itemType: 'action', propertyName: 'addVariant', tooltip: 'Add variant' })
-  if (model.kind === 'struct' || model.kind === 'union' || model.kind === 'type_alias') menu.push({ itemType: 'action', propertyName: 'addField', tooltip: 'Add property' })
-  if (model.kind === 'module') menu.push({ itemType: 'action', propertyName: 'addField', tooltip: 'Add variable' })
-  if (model.kind !== 'type_alias') menu.push({ itemType: 'action', propertyName: 'addMethod', tooltip: 'Add method' })
-  if (model.kind === 'module') {
-    menu.push({ itemType: 'action', propertyName: 'addTypeDecl', tooltip: 'Add type' })
-    menu.push({ itemType: 'action', propertyName: 'addUse', tooltip: 'Add use' })
-    menu.push({ itemType: 'action', propertyName: 'addSubmodule', tooltip: 'Add submodule' })
-  }
 
   usePropertyMenu(menu, (event) => {
     switch (event.propertyName) {
-      case 'reset': setModel(defaultModel()); setPrimaryColor('#4A4A4A'); return
+      case 'reset':
+        setModel(defaultModel());
+        setPrimaryColor('#4A4A4A');
+        return
       case 'kind': {
         const v: any = (event as any).selectedOption ?? (event as any).propertyValue ?? (event as any).option
         if (v) setModel(normalizeForKind(model, v as RustTypeKind))
         return
       }
-      case 'pickColor': setPickerOpen(true); return
-      case 'addField': addField(); return
-      case 'addMethod': addMethod(); return
-      case 'addVariant': addVariant(); return
-      case 'addUse': addUse(); return
-      case 'addTypeDecl': addTypeDecl(); return
-      case 'addSubmodule': addSubmodule(); return
+      case 'pickColor':
+        setPickerOpen(true); return
+      case 'qaTarget': {
+        const v: any = (event as any).selectedOption ?? (event as any).propertyValue ?? (event as any).option
+        if (v) setQuickAddTarget(v as any)
+        return
+      }
+      case 'qaAdd': {
+        switch (quickAddTarget) {
+          case 'property':  addField();    return
+          case 'method':    addMethod();   return
+          case 'variant':   if (model.kind === 'enum')   addVariant();   return
+          case 'type':      if (model.kind === 'module') addTypeDecl();  return
+          case 'use':       if (model.kind === 'module') addUse();       return
+          case 'submodule': if (model.kind === 'module') addSubmodule(); return
+        }
+        return
+      }
     }
   })
 
   // -------- Render --------
   return (
-    <AutoLayout direction={'vertical'} width={DEFAULT_WIDTH} spacing={8} fill={THEME.rootBg} padding={{ bottom: 8 }} cornerRadius={THEME.radius}>
+    <AutoLayout direction={'vertical'} width={'hug-contents'} spacing={8} fill={THEME.rootBg} padding={{ bottom: 8 }} cornerRadius={THEME.radius}>
       {pickerOpen && (
         <ColorPicker current={primaryColor} onPick={c => setPrimaryColor(c)} onClose={() => setPickerOpen(false)} />
       )}
@@ -620,6 +844,7 @@ function Widget() {
       {model.kind === 'module' && (
         <>
           <SectionPanel title="Types">
+            <TypeHeaderRow />
             {(model.moduleTypes ?? []).map(t => (
               <StringRow key={t.id} value={t.name} placeholder={'TypeName'} onChange={v => setModel({ ...model, moduleTypes: (model.moduleTypes ?? []).map(x => x.id === t.id ? { ...x, name: v } : x) })} onRemove={() => setModel({ ...model, moduleTypes: (model.moduleTypes ?? []).filter(x => x.id !== t.id) })} />
             ))}
@@ -648,12 +873,49 @@ function Widget() {
 
       {model.kind !== 'type_alias' && (
         <SectionPanel title="Methods">
+          <MethodHeaderRow />
           {model.methods.map(m => (
             <MethodRow key={m.id} method={m} onChange={nm => setModel({ ...model, methods: model.methods.map(x => x.id === m.id ? nm : x) })} onRemove={() => setModel({ ...model, methods: model.methods.filter(x => x.id !== m.id) })} />
           ))}
           <Pill label={'Add method'} onClick={addMethod} />
         </SectionPanel>
       )}
+    </AutoLayout>
+  )
+}
+
+// ---- Extra header rows ----
+function MethodHeaderRow() {
+  return (
+    <AutoLayout
+      spacing={8}
+      width="fill-parent"
+      padding={{ horizontal: 12, vertical: 4 }}
+      fill={THEME.headingBg}
+      cornerRadius={4}
+    >
+      <HeaderCell w={METHOD_COLS.name} label="name" />
+      <HeaderCell w={METHOD_COLS.receiver} label="receiver" />
+      <HeaderCell w={METHOD_COLS.inputs} label="inputs" />
+      <HeaderCell w={METHOD_COLS.outputs} label="outputs" />
+      <HeaderCell w={METHOD_COLS.desc} label="desc" />
+      <HeaderCell w={METHOD_COLS.actions} label="" />
+    </AutoLayout>
+  );
+}
+function VariantHeaderRow() {
+  return (
+    <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={THEME.headingBg} cornerRadius={4}>
+      <Text fontSize={10} fill={THEME.textMuted} width={120}>name</Text>
+      <Text fontSize={10} fill={THEME.textMuted} width={60}>kind</Text>
+      <Text fontSize={10} fill={THEME.textMuted}>fields</Text>
+    </AutoLayout>
+  )
+}
+function TypeHeaderRow() {
+  return (
+    <AutoLayout width={'fill-parent'} spacing={8} verticalAlignItems={'center'} padding={{ horizontal: 16, vertical: 6 }} fill={withAlpha(THEME.textPrimary, 0.08)} cornerRadius={4}>
+      <Text fontSize={10} fill={THEME.textMuted} width={220}>name</Text>
     </AutoLayout>
   )
 }
